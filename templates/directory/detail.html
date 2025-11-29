@@ -1,0 +1,482 @@
+{% extends "directory/base.html" %}
+{% load static %}
+
+{% block title %}{{ person.display_name|default:person.first_name }}{% endblock %}
+
+{% block content %}
+  {# ---------- Background image (subtle zoom) ---------- #}
+  <div class="bg-zoom" aria-hidden="true">
+    <img src="{% static 'directory/background-large.png' %}" alt="" class="bg-img">
+  </div>
+
+  {# ---------- Main content ---------- #}
+  <div class="detail-page-container" role="main">
+    <a href="{% url 'directory:home' %}" class="back-link anim-fade-up" aria-label="Back to Directory">← Back to Directory</a>
+
+    <div class="detail-card anim-fade-up" role="region" aria-labelledby="person-name">
+      {# Person title (data-* used by popover & experience calc) #}
+      <h1 id="person-name" class="person-name" tabindex="0" aria-describedby="person-popover"
+          data-person-experience="{{ person.experience_years|default:'' }}"
+          data-person-joined="{{ person.created_at|date:'Y-m-d'|default:'' }}"
+          data-person-rating="{{ person.rating|default:'' }}">
+        {{ person.display_name|default:person.first_name }}
+      </h1>
+
+      <div class="detail-grid" role="list">
+        <div class="detail-group info-tile" role="listitem" tabindex="0" aria-label="Role">
+          <p class="label">Role</p>
+          <p class="value">{{ person.role|default:"—" }}</p>
+        </div>
+
+        <div class="detail-group info-tile" role="listitem" tabindex="0" aria-label="Department">
+          <p class="label">Department</p>
+          <p class="value">{% if person.department %}{{ person.department }}{% else %}—{% endif %}</p>
+        </div>
+
+        <div class="detail-group info-tile" role="listitem" tabindex="0" aria-label="Location">
+          <p class="label">Location</p>
+          <p class="value">{% if person.location %}{{ person.location }}{% else %}—{% endif %}</p>
+        </div>
+
+        <div class="detail-group info-tile" role="listitem" tabindex="0" aria-label="Desk number">
+          <p class="label">Desk Number</p>
+          <p class="value">{{ person.desk_number|default:"N/A" }}</p>
+        </div>
+      </div>
+
+      <div class="detail-contact-section">
+        <div class="contact-item">
+          <p class="label">Email</p>
+          <p class="value"><a href="mailto:{{ person.email }}">{{ person.email }}</a></p>
+        </div>
+
+        <div class="contact-item">
+          <p class="label">Phone</p>
+          <p class="value"><a href="tel:{{ person.phone }}">{{ person.phone }}</a></p>
+        </div>
+      </div>
+
+      {% if person.bio %}
+        <div class="bio-section">
+          <p class="label">Biography</p>
+          <p class="value bio-text">{{ person.bio }}</p>
+        </div>
+      {% endif %}
+
+      {% if person.cliq_handle %}
+        <div class="cliq-cta">
+          <a href="cliq://user/{{ person.cliq_handle }}" class="cliq-button pulse">Start Cliq Chat Now</a>
+        </div>
+      {% endif %}
+    </div>
+  </div>
+
+  {# ---------- Popover (hover / keyboard / tap) ---------- #}
+  <div id="person-popover" class="person-popover" role="dialog" aria-hidden="true" aria-label="Person info popover">
+    <div class="thinking-emoji" aria-hidden="true">🤔</div>
+    <div class="popover-content">
+      <div class="popover-row"><strong>Experience:</strong> <span id="pf-exp">Not specified</span></div>
+      <div class="popover-row"><strong>Joined:</strong> <span id="pf-joined">—</span></div>
+      <div class="popover-row"><strong>Rating:</strong> <span id="pf-rating">—</span></div>
+    </div>
+  </div>
+
+  {# ---------- Mobile phone view & floating button ---------- #}
+  <!-- Floating mobile button (visible on small screens) -->
+  <button id="open-phone-view" class="mobile-phone-btn" aria-controls="phone-view" aria-expanded="false" aria-label="Open contact card">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <path d="M7 2h10a1 1 0 011 1v18a1 1 0 01-1 1H7a1 1 0 01-1-1V3a1 1 0 011-1z" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/>
+      <path d="M12 18v.01" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>
+  </button>
+
+  <!-- Phone-shaped modal -->
+  <div id="phone-view" class="phone-modal" role="dialog" aria-modal="true" aria-hidden="true">
+    <div class="phone-overlay" tabindex="-1"></div>
+
+    <div class="phone-shell" role="document" aria-labelledby="phone-title">
+      <button class="phone-close" id="close-phone" aria-label="Close">✕</button>
+      <div class="phone-notch" aria-hidden="true"></div>
+
+      <div class="phone-content" id="phone-content">
+        <header class="phone-header">
+          <h2 id="phone-title">{{ person.display_name|default:person.first_name }}</h2>
+          <p class="phone-sub">{{ person.role|default:"" }}</p>
+        </header>
+
+        <main class="phone-main">
+          <section class="phone-section">
+            <div class="kv">
+              <div class="k">Department</div>
+              <div class="v">{{ person.department|default:"—" }}</div>
+            </div>
+
+            <div class="kvtwo">
+              <div>
+                <div class="k">Location</div>
+                <div class="v small">{{ person.location|default:"—" }}</div>
+              </div>
+              <div>
+                <div class="k">Desk</div>
+                <div class="v small">{{ person.desk_number|default:"—" }}</div>
+              </div>
+            </div>
+          </section>
+
+          <hr>
+
+          <section class="phone-section">
+            <div class="k">Email</div>
+            <div class="v"><a href="mailto:{{ person.email }}">{{ person.email }}</a></div>
+
+            <div class="k">Phone</div>
+            <div class="v"><a href="tel:{{ person.phone }}">{{ person.phone }}</a></div>
+
+            {% if person.cliq_handle %}
+              <div class="k">Cliq</div>
+              <div class="v"><a href="cliq://user/{{ person.cliq_handle }}">Open Cliq ({{ person.cliq_handle }})</a></div>
+            {% endif %}
+          </section>
+
+          {% if person.bio %}
+            <hr>
+            <section class="phone-section">
+              <div class="k">About</div>
+              <div class="v bio">{{ person.bio }}</div>
+            </section>
+          {% endif %}
+
+          <hr>
+          <section class="phone-section small-note">
+            <div class="k">Joined</div>
+            <div class="v">{{ person.created_at|date:"F j, Y" }}</div>
+
+            <div class="k">Experience</div>
+            {% if person.experience_years %}
+              <div class="v">{{ person.experience_years }}+ years</div>
+            {% else %}
+              <div class="v">
+                {% with years=person.created_at|timesince %}
+                  {{ years|cut:" years" |cut:" months" }}
+                {% endwith %}
+              </div>
+            {% endif %}
+          </section>
+        </main>
+
+        <footer class="phone-footer">
+          <a class="phone-action" href="mailto:{{ person.email }}">Email</a>
+          <a class="phone-action" href="tel:{{ person.phone }}">Call</a>
+          {% if person.cliq_handle %}
+            <a class="phone-action phone-action-strong" href="cliq://user/{{ person.cliq_handle }}">Cliq</a>
+          {% endif %}
+        </footer>
+      </div>
+    </div>
+  </div>
+
+  {# ---------- Styles (kept inline for quick testing) ---------- #}
+  <style>
+    :root{
+      --primary-blue:#2563eb;
+      --accent:#7c3aed;
+      --muted:#6b7280;
+      --card-bg:#ffffff;
+      --border:#eef2f6;
+    }
+
+    /* Background zoom */
+    .bg-zoom { position: fixed; inset: 0; z-index: 0; pointer-events: none; overflow:hidden; }
+    .bg-zoom .bg-img { position:absolute; left:50%; top:50%; transform:translate(-50%,-50%); min-width:120%; min-height:120%; object-fit:cover; opacity:0.10; animation:bgZoom 26s linear infinite alternate; filter:contrast(.98); }
+    @keyframes bgZoom { 0%{transform:translate(-50%,-50%) scale(1);} 100%{transform:translate(-48%,-52%) scale(1.06);} }
+
+    /* Page layout */
+    .detail-page-container { max-width:1100px; margin:28px auto; padding:12px 20px; position:relative; z-index:2; }
+    .back-link { display:inline-block; margin-left:12px; padding:8px 14px; border-radius:999px; background: rgba(124,58,237,0.06); color: var(--accent); font-weight:700; text-decoration:none; transition:transform .18s; }
+    .back-link:hover{ transform:translateY(-2px); }
+
+    .detail-card { margin:28px auto; background:var(--card-bg); padding:34px; border-radius:12px; box-shadow:0 10px 36px rgba(12,20,40,.06); position:relative; }
+    .person-name { font-size:2.25rem; margin:6px 0 20px; font-weight:800; cursor:default; display:inline-block; position:relative; }
+
+    .detail-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:18px; align-items:start; border-bottom:1px solid var(--border); padding-bottom:18px; }
+    @media (max-width:900px){ .detail-grid{grid-template-columns:repeat(2,1fr);} }
+    @media (max-width:640px){ .detail-grid{grid-template-columns:1fr;} .person-name{font-size:1.6rem;} }
+
+    .label{ font-weight:700; color:var(--muted); font-size:12px; margin-bottom:8px; text-transform:uppercase; }
+    .value{ font-size:1rem; color:#111827; }
+
+    .info-tile{ padding:12px; border-radius:10px; transition:transform .22s ease, box-shadow .22s ease; }
+    .info-tile:hover,.info-tile:focus{ transform:translateY(-8px); box-shadow:0 18px 40px rgba(12,20,40,.08); background:rgba(124,58,237,.03); }
+
+    .detail-contact-section{ display:flex; gap:40px; padding-top:22px; margin-top:22px; }
+    @media (max-width:640px){ .detail-contact-section{ flex-direction:column; } }
+
+    .detail-card a{ color:var(--primary-blue); text-decoration:none; font-weight:700; position:relative; }
+    .detail-card a::after{ content:""; display:block; height:2px; width:0%; background:linear-gradient(90deg,var(--primary-blue),var(--accent)); transition:width .26s ease; margin-top:6px; }
+    .detail-card a:hover::after{ width:100%; }
+
+    .cliq-button{ display:inline-block; background:linear-gradient(90deg,var(--primary-blue),var(--accent)); color:#fff; padding:10px 18px; border-radius:10px; text-decoration:none; font-weight:700; margin-top:16px; box-shadow:0 8px 24px rgba(37,99,235,.08); transition:transform .14s; }
+    .cliq-button:hover{ transform:translateY(-3px); box-shadow:0 20px 46px rgba(37,99,235,.12); }
+
+    .bio-text{ white-space: pre-wrap; color:#374151; }
+
+    /* Popover */
+    .person-popover{
+      position: fixed;
+      z-index: 99999;
+      pointer-events: none;
+      transform: translate(-50%, -100%) scale(.98);
+      transition: transform .16s ease, opacity .18s ease;
+      opacity: 0;
+      display:flex;
+      align-items:center;
+      gap:12px;
+      background: linear-gradient(180deg, rgba(255,255,255,0.98), rgba(250,250,250,0.98));
+      border-radius: 12px;
+      padding: 10px 14px;
+      box-shadow: 0 10px 30px rgba(6,8,15,0.12);
+      min-width:180px;
+      font-size:14px;
+      user-select: none;
+    }
+    .person-popover.show { opacity: 1; transform: translate(-50%, -120%) scale(1); pointer-events: auto; }
+
+    .thinking-emoji{
+      font-size:28px;
+      width:36px; height:36px; display:flex; align-items:center; justify-content:center;
+      border-radius:10px;
+      background: linear-gradient(180deg,#fff,#f7f7ff);
+      box-shadow: 0 6px 18px rgba(99,102,241,0.06);
+      animation: thinkNod 1.6s ease-in-out infinite;
+    }
+    @keyframes thinkNod {
+      0% { transform: translateY(0) rotate(0); }
+      40% { transform: translateY(-6px) rotate(-6deg); }
+      80% { transform: translateY(0) rotate(0); }
+      100% { transform: translateY(0) rotate(0); }
+    }
+    .popover-content { min-width:120px; }
+    .popover-row { margin: 4px 0; color:#111827; }
+    .popover-row strong { color: #374151; font-weight:700; margin-right:6px; }
+
+    @media (max-width:520px){
+      .person-popover{ display:none; } /* hide on tiny devices (touch toggles exist) */
+    }
+
+    /* Mobile floating button */
+    .mobile-phone-btn{
+      position:fixed;
+      right:18px;
+      bottom:18px;
+      z-index:1600;
+      width:56px;height:56px;
+      border-radius:50%;
+      border:0;
+      display:flex;align-items:center;justify-content:center;
+      background:linear-gradient(90deg,#7c3aed,#06b6d4);
+      color:#fff;box-shadow:0 12px 30px rgba(99,102,241,0.18);
+      cursor:pointer;
+    }
+    .mobile-phone-btn svg{ color:white; }
+    @media (min-width:900px){
+      .mobile-phone-btn{ display:none; } /* hide on desktop */
+    }
+
+    /* Phone modal */
+    .phone-modal{ display:none; position:fixed; inset:0; z-index:1700; align-items:center; justify-content:center; }
+    .phone-modal[aria-hidden="false"]{ display:flex; }
+    .phone-overlay{ position:absolute; inset:0; background:rgba(6,8,15,0.45); }
+
+    .phone-shell{
+      width:360px;
+      max-width:92%;
+      border-radius:28px;
+      background:linear-gradient(180deg,#ffffff,#fbfdff);
+      box-shadow:0 28px 80px rgba(2,6,23,0.35);
+      border:1px solid rgba(10,20,40,0.06);
+      overflow:hidden;
+      transform-origin:center;
+      display:flex;flex-direction:column;
+      max-height:86vh;
+    }
+    .phone-notch{ height:10px; width:64px; border-radius:10px; margin:10px auto 0 auto; background:linear-gradient(90deg,#eef2ff,#f8fafc); box-shadow:inset 0 -2px 4px rgba(10,20,40,0.02); }
+    .phone-close{ position:absolute;right:8px;top:8px;border:0;background:transparent;font-size:18px;color:#374151;cursor:pointer; }
+
+    .phone-content{ display:flex;flex-direction:column;height:100%;min-height:380px;overflow:hidden; }
+    .phone-header{ padding:18px 20px 6px 20px; }
+    .phone-header h2{ margin:0;font-size:20px;letter-spacing:-0.02em;color:#0f172a; }
+    .phone-sub{ color:#6b7280;margin-top:6px;font-size:13px; }
+
+    .phone-main{ overflow:auto;padding:8px 18px 12px; -webkit-overflow-scrolling:touch; }
+    .phone-section{ padding:8px 0; }
+    .k{ font-size:12px;color:#6b7280;font-weight:700;margin-bottom:6px; text-transform:uppercase; letter-spacing:0.06em; }
+    .v{ font-size:15px;color:#0f172a;margin-bottom:12px; }
+    .v.small{ font-size:14px;color:#111827; }
+    .kvtwo{ display:flex; gap:14px; justify-content:space-between; align-items:flex-start; }
+    .kvtwo .v{ margin:0; }
+
+    .bio{ white-space:pre-wrap; color:#374151; line-height:1.45; }
+
+    .phone-footer{ padding:12px;background:linear-gradient(180deg, #fff, #fbfdff); display:flex;gap:8px; justify-content:space-between; border-top:1px solid rgba(10,20,40,0.03); }
+    .phone-action{ flex:1;text-align:center;padding:10px;border-radius:10px;text-decoration:none;color:#334155;background:#f1f5f9;font-weight:700; }
+    .phone-action-strong{ background:linear-gradient(90deg,#7c3aed,#06b6d4); color:white; box-shadow:0 10px 30px rgba(99,102,241,0.12); }
+
+    .small-note .k{ margin-top:6px; }
+
+    @media (max-width:420px){ .phone-shell{ width:320px; } }
+
+    @media (prefers-reduced-motion: reduce){
+      .bg-zoom .bg-img, .person-popover, .thinking-emoji { animation: none !important; transition: none !important; transform: none !important; }
+    }
+  </style>
+
+  {# ---------- JavaScript: popover + phone modal ---------- #}
+  <script>
+    (function(){
+      // --- Popover setup ---
+      const nameEl = document.getElementById('person-name');
+      const pop = document.getElementById('person-popover');
+      const pfExp = document.getElementById('pf-exp');
+      const pfJoined = document.getElementById('pf-joined');
+      const pfRating = document.getElementById('pf-rating');
+
+      const rawExp = nameEl.getAttribute('data-person-experience') || '';
+      const rawJoined = nameEl.getAttribute('data-person-joined') || '';
+      const rawRating = nameEl.getAttribute('data-person-rating') || '';
+
+      function yearsSince(isoDate){
+        if(!isoDate) return null;
+        try{
+          const d = new Date(isoDate);
+          if(isNaN(d)) return null;
+          const now = new Date();
+          let years = now.getFullYear() - d.getFullYear();
+          const m = now.getMonth() - d.getMonth();
+          if(m < 0 || (m === 0 && now.getDate() < d.getDate())) years--;
+          return years >= 0 ? years : null;
+        } catch(e){ return null; }
+      }
+
+      function formatExperience(){
+        if(rawExp){
+          const n = parseFloat(rawExp);
+          if(!isNaN(n)) return (Math.floor(n) >= 1) ? `${Math.floor(n)}+ years` : `${n}+ years`;
+          return rawExp;
+        }
+        const years = yearsSince(rawJoined);
+        if(years !== null){
+          if(years === 0) return 'Less than 1 year';
+          if(years === 1) return '1+ year';
+          return `${years}+ years`;
+        }
+        return 'Not specified';
+      }
+
+      pfExp.textContent = formatExperience();
+      pfJoined.textContent = rawJoined || '—';
+      pfRating.textContent = rawRating ? (rawRating + ' / 5') : '—';
+
+      function setPopPosition(x,y){
+        const pad = 12;
+        const w = pop.offsetWidth;
+        const h = pop.offsetHeight;
+        let left = x;
+        let top = y - 20;
+
+        const minLeft = pad + w/2;
+        const maxLeft = window.innerWidth - pad - w/2;
+        if(left < minLeft) left = minLeft;
+        if(left > maxLeft) left = maxLeft;
+        if(top < (h + 60)) top = y + 30;
+
+        pop.style.left = left + 'px';
+        pop.style.top = top + 'px';
+      }
+
+      let mouseHandler = null;
+      nameEl && nameEl.addEventListener('mouseenter', (e) => {
+        if (('ontouchstart' in window)) return;
+        pop.classList.add('show');
+        pop.setAttribute('aria-hidden','false');
+        mouseHandler = (ev) => setPopPosition(ev.clientX, ev.clientY);
+        window.addEventListener('mousemove', mouseHandler);
+      });
+      nameEl && nameEl.addEventListener('mouseleave', (e) => {
+        if(mouseHandler) window.removeEventListener('mousemove', mouseHandler);
+        pop.classList.remove('show');
+        pop.setAttribute('aria-hidden','true');
+      });
+
+      nameEl && nameEl.addEventListener('focus', (e) => {
+        const rect = nameEl.getBoundingClientRect();
+        setPopPosition(rect.left + rect.width/2, rect.top);
+        pop.classList.add('show');
+        pop.setAttribute('aria-hidden','false');
+      });
+      nameEl && nameEl.addEventListener('blur', () => {
+        pop.classList.remove('show');
+        pop.setAttribute('aria-hidden','true');
+      });
+      document.addEventListener('keydown', (e) => {
+        if(e.key === 'Escape'){ pop.classList.remove('show'); pop.setAttribute('aria-hidden','true'); }
+      });
+
+      // Touch toggles (tap to show briefly)
+      nameEl && nameEl.addEventListener('click', (e) =>{
+        if (!('ontouchstart' in window)) return;
+        e.preventDefault();
+        const rect = nameEl.getBoundingClientRect();
+        setPopPosition(rect.left + rect.width/2, rect.top);
+        const isVisible = pop.classList.contains('show');
+        if(isVisible){
+          pop.classList.remove('show');
+          pop.setAttribute('aria-hidden','true');
+        } else {
+          pop.classList.add('show');
+          pop.setAttribute('aria-hidden','false');
+          setTimeout(()=>{ pop.classList.remove('show'); pop.setAttribute('aria-hidden','true'); }, 4500);
+        }
+      });
+
+      // --- Phone modal (mobile) ---
+      const openBtn = document.getElementById('open-phone-view');
+      const closeBtn = document.getElementById('close-phone');
+      const modal = document.getElementById('phone-view');
+      const overlay = modal && modal.querySelector('.phone-overlay');
+      const phoneContent = document.getElementById('phone-content');
+
+      function openModal(){
+        if(!modal) return;
+        modal.setAttribute('aria-hidden','false');
+        openBtn && openBtn.setAttribute('aria-expanded','true');
+        document.documentElement.style.overflow = 'hidden';
+        setTimeout(()=> {
+          const focusable = modal.querySelector('a,button');
+          if(focusable) focusable.focus();
+        }, 40);
+      }
+      function closeModal(){
+        if(!modal) return;
+        modal.setAttribute('aria-hidden','true');
+        openBtn && openBtn.setAttribute('aria-expanded','false');
+        document.documentElement.style.overflow = '';
+        openBtn && openBtn.focus();
+      }
+
+      openBtn && openBtn.addEventListener('click', openModal);
+      closeBtn && closeBtn.addEventListener('click', closeModal);
+      overlay && overlay.addEventListener('click', closeModal);
+
+      document.addEventListener('keydown', function(e){
+        if(e.key === 'Escape' && modal && modal.getAttribute('aria-hidden') === 'false'){
+          closeModal();
+        }
+      });
+
+      // stop background scroll on touch inside modal content
+      if(phoneContent){
+        phoneContent.addEventListener('touchmove', function(e){ e.stopPropagation(); }, { passive: false });
+      }
+    })();
+  </script>
+{% endblock %}

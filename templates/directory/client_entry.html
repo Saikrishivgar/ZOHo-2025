@@ -1,0 +1,152 @@
+{% extends "directory/base.html" %}
+
+{% block title %}Enter Client Details{% endblock %}
+{% load static %}
+{% block content %}
+<div class="container" style="max-width:820px;">
+  <div style="background:white;padding:28px;border-radius:12px;box-shadow:0 8px 24px rgba(12,24,56,0.06)">
+    <div style="display:flex;align-items:center;gap:14px;margin-bottom:8px">
+      
+      <img src="{% static 'directory/images.png' %}" 
+           alt="logo"
+           style="height:44px;border-radius:6px;object-fit:cover">
+
+      <div>
+        <h2 style="margin:0;font-size:22px">Enter Your Details</h2>
+        <div style="color:var(--secondary-text);font-size:13px">
+          Please fill your information so admin can reach you.
+        </div>
+      </div>
+    </div>
+
+    <form id="clientEntryForm" method="post" novalidate>
+      {% csrf_token %}
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:16px">
+
+        <!-- LOCATION -->
+        <label style="display:block;">
+          <div style="font-weight:600;font-size:13px;margin-bottom:6px">Location *</div>
+          <select id="locationField" name="location"
+                  style="width:100%;padding:10px;border:1px solid var(--border-color);border-radius:8px">
+              <option value="">Select a location</option>
+              {% for loc in locations %}
+                  <option value="{{ loc.id }}">{{ loc.name }}</option>
+              {% endfor %}
+          </select>
+        </label>
+
+        <!-- NAME -->
+        <label style="display:block;">
+          <div style="font-weight:600;font-size:13px;margin-bottom:6px">Full name *</div>
+          <input id="nameField" name="name" type="text" placeholder="Jane Doe" required
+                 style="width:100%;padding:10px;border:1px solid var(--border-color);border-radius:8px">
+        </label>
+      </div>
+
+      <!-- EMAIL -->
+      <div style="margin-top:12px">
+        <label style="display:block">
+          <div style="font-weight:600;font-size:13px;margin-bottom:6px">Email *</div>
+          <input id="emailField" name="email" type="email" placeholder="you@company.com" required
+                 style="width:100%;padding:10px;border:1px solid var(--border-color);border-radius:8px">
+        </label>
+      </div>
+
+      <!-- DEPARTMENT -->
+      <label style="display:block;margin-top:12px;">
+        <div style="font-weight:600;font-size:13px;margin-bottom:6px">Department *</div>
+        <select id="departmentField" name="department"
+                style="width:100%;padding:10px;border:1px solid var(--border-color);border-radius:8px">
+            <option value="">Select a department</option>
+            {% for dept in departments %}
+                <option value="{{ dept.id }}">{{ dept.name }}</option>
+            {% endfor %}
+        </select>
+      </label>
+
+      <!-- NOTES -->
+      <div style="margin-top:12px">
+        <label style="display:block">
+          <div style="font-weight:600;font-size:13px;margin-bottom:6px">Notes (optional)</div>
+          <textarea id="notesField" name="notes" rows="4"
+                    placeholder="Any context for the admin..."
+                    style="width:100%;padding:10px;border:1px solid var(--border-color);border-radius:8px"></textarea>
+        </label>
+      </div>
+
+      <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:18px;align-items:center">
+        <a href="{% url 'directory:home' %}" style="color:var(--secondary-text);text-decoration:none">Back</a>
+        <button id="submitBtn" type="submit"
+                style="background:linear-gradient(90deg,#0077ff,#6a00ff);color:#fff;border:0;padding:10px 16px;border-radius:8px;font-weight:700;">
+          Submit & Save
+        </button>
+      </div>
+
+      <div id="clientMsg" style="margin-top:12px;font-size:14px;color:#b91c1c"></div>
+    </form>
+  </div>
+</div>
+
+<script>
+(function(){
+  const form = document.getElementById('clientEntryForm');
+  const msg = document.getElementById('clientMsg');
+  const csrftoken = document.cookie.match('(^|;)\\s*csrftoken\\s*=\\s*([^;]+)') ?
+        document.cookie.match('(^|;)\\s*csrftoken\\s*=\\s*([^;]+)')[2] : '';
+
+  function validEmail(e){
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e);
+  }
+
+  form.addEventListener('submit', function(e){
+    e.preventDefault();
+    msg.style.color = '#b91c1c';
+    msg.textContent = '';
+
+    const locationId = document.getElementById('locationField').value;
+    const departmentId = document.getElementById('departmentField').value;
+    const name = document.getElementById('nameField').value.trim();
+    const email = document.getElementById('emailField').value.trim();
+    const notes = document.getElementById('notesField').value.trim();
+
+    if(!name || !email){
+      msg.textContent = 'Name and email are required.';
+      return;
+    }
+    if(!validEmail(email)){
+      msg.textContent = 'Please enter a valid email.';
+      return;
+    }
+
+    const text = await r.text();
+      try {
+        const data = JSON.parse(text || '{}');
+        if(!r.ok){
+          // server returned error status (e.g. 400) -> show errors from JSON if present
+          msg.textContent = data.errors ? JSON.stringify(data.errors) : 'Server returned an error.';
+          return;
+        }
+        if(!data.ok){
+          msg.textContent = data.errors ? JSON.stringify(data.errors) : 'Server returned an error.';
+          return;
+        }
+
+        
+        // success
+        localStorage.setItem('zohoask_client_email_v1', email);
+        msg.style.color = '#0f5132';
+        msg.textContent = 'Saved. Redirecting…';
+        setTimeout(() => window.location.href = "{% url 'directory:home' %}", 900);
+      } catch(parseErr){
+        console.error('parse error', parseErr, text);
+        msg.textContent = 'Server error — please try again.';
+      }
+    }).catch(err=>{
+      console.error('network error', err);
+      msg.textContent = 'Network error — please try again.';
+    });
+  });
+})();
+</script>
+{% endblock %}

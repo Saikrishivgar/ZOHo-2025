@@ -1,0 +1,316 @@
+{% extends "directory/base.html" %}
+{% load static %}
+
+{% block title %}Quick Apps Library{% endblock %}
+
+{% block extra_styles %}
+<style>
+  /* Layout */
+  .apps-top { max-width: 1200px; margin: 20px auto; padding: 0 20px; }
+
+  /* Search */
+  #apps-search { width: 100%; padding: 12px 14px; border-radius: 10px; border: 1px solid #e6e6e9; box-shadow: 0 1px 0 rgba(0,0,0,0.02); font-size: 14px; }
+
+  /* Grid */
+  .apps-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(360px, 1fr)); gap: 26px; margin: 24px auto; max-width: 1200px; padding: 0 20px; }
+
+  /* Card */
+  .app-card {
+    background: linear-gradient(180deg, rgba(255,255,255,0.98), rgba(255,255,255,0.96));
+    border-radius: 12px;
+    padding: 20px;
+    border: 1px solid rgba(15, 23, 42, 0.04);
+    box-shadow: 0 8px 24px rgba(10, 20, 40, 0.04);
+    transition: transform 180ms ease, box-shadow 180ms ease;
+    display: flex; flex-direction: column; min-height: 220px; position: relative; overflow: visible;
+  }
+
+  .app-card:hover { transform: translateY(-6px); box-shadow: 0 18px 36px rgba(10, 20, 40, 0.08); }
+
+  .app-head { display:flex; align-items:center; gap:14px; margin-bottom: 10px; width:100%; }
+
+  .app-icon { width:48px; height:48px; border-radius:10px; object-fit:cover; flex: 0 0 48px; background: #fff; border: 1px solid rgba(0,0,0,0.04); padding:6px; display:inline-block; }
+
+  .app-title { display:flex; align-items:flex-start; gap:10px; width:100%; }
+
+  .app-title h3 { margin:0; font-size:16px; font-weight:700; }
+  .app-tagline { margin-top:4px; color: #6b7280; font-size:13px; }
+
+  .app-meta-right { margin-left:auto; display:flex; align-items:center; gap:12px; white-space:nowrap; font-size:13px; color:#374151; }
+
+  .rating-pill { display:flex; align-items:center; gap:6px; background:linear-gradient(90deg,#fff,#ffffff); padding:6px 10px; border-radius:18px; border:1px solid rgba(0,0,0,0.04); font-weight:700; font-size:13px; }
+  .rating-pill .star { color:#f59e0b; font-size:16px; line-height:1; }
+  .rating-value { display:flex; align-items:baseline; gap:6px; }
+  .rating-value .val { font-weight:700; font-size:14px; }
+  .rating-value .outof { color:#6b7280; font-size:12px; }
+
+  .popularity { font-size:12px; color:#6b7280; }
+
+  .app-desc { margin-top:8px; color:#374151; font-size:14px; line-height:1.5; flex-grow:1; }
+  .chips { display:flex; gap:8px; flex-wrap:wrap; margin-top:12px; }
+  .chip { background:#f3f4f6; color:#111827; padding:6px 10px; border-radius:999px; font-size:12px; }
+
+  .app-links { margin-top:14px; font-size:13px; display:flex; gap:8px; flex-wrap:wrap; align-items:center; }
+  .app-links a { color:#4f46e5; text-decoration:underline; }
+
+  /* GUIDE button (premium pill) */
+  .guide-btn {
+    display:inline-flex; align-items:center; gap:8px; padding:8px 12px; border-radius:999px;
+    background: linear-gradient(90deg,#7c3aed,#06b6d4); color:white; font-weight:700; text-decoration:none;
+    box-shadow: 0 8px 20px rgba(99,102,241,0.12);
+    border: none; cursor: pointer;
+  }
+  .guide-btn .play { font-weight:700; font-size:14px; }
+
+  /* Back button */
+  .back-btn { display:inline-flex; align-items:center; gap:8px; background:#ffffff; border:1px solid rgba(15,23,42,0.06); padding:8px 14px; border-radius:999px; text-decoration:none; color:#111827; font-size:14px; margin:28px 20px; }
+
+  /* Modal / Player */
+  .guide-modal { display:none; position:fixed; inset:0; z-index:9999; align-items:center; justify-content:center; }
+  .guide-modal.open { display:flex; }
+  .guide-overlay { position:absolute; inset:0; background:rgba(6,8,15,0.6); }
+  .guide-dialog {
+    position:relative; width:min(1100px,96%); max-height:90vh; overflow:auto;
+    background:#fff; border-radius:12px; padding:18px; z-index:10000; box-shadow:0 30px 80px rgba(2,6,23,0.35);
+  }
+  .guide-close { position:absolute; right:12px; top:12px; background:transparent; border:0; font-size:20px; cursor:pointer; }
+  .guide-player iframe, .guide-player video { width:100%; height:520px; border-radius:8px; background:#000; }
+  .guide-meta { margin-top:12px; display:flex; gap:12px; align-items:center; justify-content:space-between; flex-wrap:wrap; }
+  .guide-content { margin-top:12px; color:#374151; font-size:14px; line-height:1.5; }
+
+  @media (max-width:720px){
+    .guide-player iframe, .guide-player video { height:260px; }
+    .app-card { min-height:unset; }
+  }
+</style>
+{% endblock extra_styles %}
+
+{% block content %}
+  <div class="apps-top">
+    <h1 style="margin:0 0 18px 0;">Zoho App Library</h1>
+
+    <form id="apps-search-form" method="get" action="{% url 'directory:apps_list' %}">
+      <input id="apps-search" name="q" type="search" placeholder="Search apps, tags, use-cases..." value="{{ q|default:'' }}">
+    </form>
+  </div>
+
+  <div class="apps-grid" id="apps-grid">
+    {% for app in apps %}
+      <div class="app-card"
+           data-name="{{ app.name|default:'' }} {{ app.tagline|default:'' }} {{ app.tags_list|join:' '|default:'' }}"
+           data-tags="{{ app.tags_list|join:','|default:'' }}"
+           data-description="{{ app.description|default:''|truncatechars:200 }}">
+        <div class="app-head">
+          {% if app.icon_url %}
+            <img class="app-icon" src="{{ app.icon_url }}" alt="{{ app.name }}">
+          {% else %}
+            <div class="app-icon" aria-hidden="true" style="display:inline-flex;align-items:center;justify-content:center;color:#6366f1;font-weight:700;">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                <path d="M3 12h18M12 3v18" stroke="#a78bfa" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </div>
+          {% endif %}
+
+          <div class="app-title">
+            <div>
+              <h3>{{ app.name }}</h3>
+              <div class="app-tagline">{{ app.tagline }}</div>
+            </div>
+
+            <div class="app-meta-right" aria-hidden="true">
+              <div class="rating-pill" title="Rating">
+                <span class="star">★</span>
+                <div class="rating-value">
+                  <span class="val">{{ app.rating|default:"-" }}</span>
+                  <span class="outof">/ 5</span>
+                </div>
+              </div>
+              <div class="popularity">popularity: <strong style="color:#111827">{{ app.popularity|default:0 }}</strong></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="app-desc">
+          {{ app.description }}
+        </div>
+
+        <div class="chips" aria-hidden="true">
+          {% if app.tags_list %}
+            {% for tag in app.tags_list %}
+              <div class="chip">{{ tag }}</div>
+            {% endfor %}
+          {% endif %}
+          {% if app.who %}<div class="chip">Who: {{ app.who }}</div>{% endif %}
+          {% if app.access %}<div class="chip">Access: {{ app.access }}</div>{% endif %}
+        </div>
+
+        <div class="app-links">
+          {% if app.doc %}<a href="{{ app.doc }}" target="_blank" rel="noopener">Read docs</a>{% endif %}
+          {% if app.doc and app.cliq_channel %} &nbsp;|&nbsp; {% endif %}
+          {% if app.cliq_channel %}<a href="{{ app.cliq_channel }}" target="_blank" rel="noopener">Cliq channel</a>{% endif %}
+          {% if app.internal_runbook %}&nbsp;|&nbsp;<a href="{{ app.internal_runbook }}" target="_blank" rel="noopener">Runbook</a>{% endif %}
+
+          {% if app.help_contact %}
+            {% if app.help_contact.name or app.help_contact.email %}
+              &nbsp;|&nbsp; Help:
+              {% if app.help_contact.name %} {{ app.help_contact.name }}{% endif %}
+              {% if app.help_contact.email %} (<a href="mailto:{{ app.help_contact.email }}">{{ app.help_contact.email }}</a>){% endif %}
+            {% endif %}
+          {% endif %}
+
+          {# Only a button in the card - modal will inject the player on click #}
+          {% if app.guide_source %}
+            <button type="button" class="guide-btn"
+                    data-guide-url="{{ app.guide_source|escape }}"
+                    data-app-name="{{ app.name|escape }}">
+              <span class="play">▶</span><span>Guide</span>
+            </button>
+          {% endif %}
+        </div>
+      </div>
+    {% empty %}
+      <div style="grid-column: 1 / -1; text-align:center; padding:40px;">
+        <div class="no-results">No apps found. Add apps via admin or <code>static/directory/data/apps.json</code>.</div>
+      </div>
+    {% endfor %}
+  </div>
+
+  <div style="max-width:1200px;margin:10px auto;padding:0 20px;">
+    <a class="back-btn" href="{% url 'directory:home' %}">← Back to Directory</a>
+  </div>
+
+  <!-- GUIDE Modal -->
+  <div id="guide-modal" class="guide-modal" aria-hidden="true">
+    <div class="guide-overlay" aria-hidden="true"></div>
+    <div class="guide-dialog" role="dialog" aria-modal="true" aria-labelledby="guide-title">
+      <button id="guide-close" class="guide-close" aria-label="Close">✕</button>
+
+      <div class="guide-player" id="guide-player"><!-- injected --></div>
+
+      <div class="guide-meta">
+        <div>
+          <h2 id="guide-title" style="margin:8px 0 0 0;font-size:18px;"></h2>
+          <div id="guide-sub" style="color:#6b7280;font-size:13px;margin-top:6px;"></div>
+        </div>
+        <div id="guide-extra" style="text-align:right;color:#6b7280;font-size:13px;"></div>
+      </div>
+
+      <div class="guide-content" id="guide-content"></div>
+    </div>
+  </div>
+
+  <script>
+  (function(){
+    const modal = document.getElementById('guide-modal');
+    const overlay = document.querySelector('.guide-overlay');
+    const player = document.getElementById('guide-player');
+    const titleEl = document.getElementById('guide-title');
+    const subEl = document.getElementById('guide-sub');
+    const extraEl = document.getElementById('guide-extra');
+    const contentEl = document.getElementById('guide-content');
+    const closeBtn = document.getElementById('guide-close');
+
+    function isYouTube(url){
+      return typeof url === 'string' && (/youtube\.com|youtu\.be/).test(url);
+    }
+
+    function extractYouTubeId(url){
+      if(!url || typeof url !== 'string') return null;
+      url = url.trim();
+      if (/^[A-Za-z0-9_-]{6,}$/.test(url)) return url;
+      try {
+        const u = new URL(url);
+        if (u.hostname.includes('youtu.be')) {
+          const parts = u.pathname.split('/');
+          return parts.pop() || parts.pop();
+        }
+        if (u.searchParams && u.searchParams.get('v')) return u.searchParams.get('v');
+        const pathParts = u.pathname.split('/');
+        const embedIndex = pathParts.indexOf('embed');
+        if (embedIndex !== -1 && pathParts[embedIndex+1]) return pathParts[embedIndex+1];
+      } catch (e) {
+        const regex = /(?:v=|\/embed\/|youtu\.be\/|\/v\/)([A-Za-z0-9_-]{6,})/;
+        const m = url.match(regex); if(m && m[1]) return m[1];
+      }
+      return null;
+    }
+
+    function openModal(name, url){
+      titleEl.textContent = name || 'Guide';
+      subEl.textContent = '';
+      extraEl.textContent = '';
+      player.innerHTML = '';
+      contentEl.innerHTML = '';
+
+      if(!url){
+        contentEl.textContent = 'No guide available.';
+        modal.classList.add('open'); document.documentElement.style.overflow = 'hidden';
+        return;
+      }
+
+      if(isYouTube(url)){
+        const id = extractYouTubeId(url);
+        if(id){
+          const embedUrl = `https://www.youtube-nocookie.com/embed/${id}?rel=0&autoplay=1`;
+          const iframe = document.createElement('iframe');
+          iframe.src = embedUrl;
+          iframe.frameBorder = 0;
+          iframe.allow = 'accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture';
+          iframe.setAttribute('allowfullscreen','true');
+          iframe.style.width = '100%';
+          iframe.style.height = '520px';
+          player.appendChild(iframe);
+
+          const watchOn = document.createElement('div');
+          watchOn.style.marginTop = '8px';
+          watchOn.innerHTML = `<a href="https://www.youtube.com/watch?v=${id}" target="_blank" rel="noopener">Open on YouTube</a>`;
+          extraEl.appendChild(watchOn);
+        } else {
+          contentEl.innerHTML = `Cannot parse YouTube link. <a href="${url}" target="_blank" rel="noopener">Open link</a>`;
+        }
+      } else {
+        // assume direct video URL (MP4) or other playable url
+        const video = document.createElement('video');
+        video.controls = true;
+        video.playsInline = true;
+        video.style.width = '100%';
+        video.style.maxHeight = '520px';
+        const src = document.createElement('source');
+        src.src = url;
+        src.type = 'video/mp4';
+        video.appendChild(src);
+        player.appendChild(video);
+
+        const a = document.createElement('div');
+        a.style.marginTop = '8px';
+        a.innerHTML = `<a href="${url}" target="_blank" rel="noopener">Open video in new tab</a>`;
+        extraEl.appendChild(a);
+      }
+
+      modal.classList.add('open');
+      document.documentElement.style.overflow = 'hidden';
+    }
+
+    function closeModal(){
+      modal.classList.remove('open');
+      player.innerHTML = '';
+      contentEl.innerHTML = '';
+      document.documentElement.style.overflow = '';
+    }
+
+    document.querySelectorAll('.guide-btn').forEach(btn=>{
+      btn.addEventListener('click', (e)=>{
+        e.preventDefault();
+        const url = btn.getAttribute('data-guide-url');
+        const name = btn.getAttribute('data-app-name');
+        openModal(name, url);
+      });
+    });
+
+    closeBtn.addEventListener('click', closeModal);
+    overlay.addEventListener('click', closeModal);
+    document.addEventListener('keydown', (e)=> { if(e.key === 'Escape') closeModal(); });
+
+  })();
+  </script>
+{% endblock %}
